@@ -22,9 +22,7 @@ class Game:
             output += "\n"
         print(output)
 
-    '''
-    --> FIX THIS!
-    '''
+
     def move(self, picked_column):
         
         if picked_column < 0 or picked_column > 6:
@@ -56,14 +54,19 @@ class Game:
             self.turn = 2
         else:
             self.turn = 1
-    '''
-    --> End of code that needs to be fixed
-    '''
 
     def win(self):
         # checks the board for the person who just made a move
         turn = self.turn
         
+        # check if there is something in the last column
+        check_column = 0
+        for i in range(6):
+            check_column += self.board[turn][i][self.column]
+        if check_column == 0:
+            print("Nothing in the last column! Something's wrong...")
+            return
+
         # the highest possible is at row 0
         highest = 0
         # iterate while the piece is there
