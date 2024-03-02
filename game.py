@@ -23,30 +23,15 @@ class Game:
         print(output)
 
 
-    def move(self, picked_column):
+    def game_move(self, picked_column):
         
-        if picked_column < 0 or picked_column > 6:
-            # print or return a value for invalid input
-            print("Invalid column, enter again")
-            return
-            
-        row = 5
-        
-        # check 
-        while row >= 0 and self.board[0][row][picked_column] == 0:
-            row -= 1
-            
-        if row == -1:
-            # print column full
-            print("Column is full, enter another column")
-            return
-        
-        self.board[0][row][picked_column] = 0
-        self.board[self.turn][row][picked_column] = 1
+        # calls move from outside the class
+        move(self.board, picked_column, self.turn)
+
+        # update last chosen column
         self.column = picked_column
         
         # check for win
-        
         self.win()
         
         # turn change
@@ -145,3 +130,24 @@ class Game:
                 empty_sum += self.board[0][0][col]
             if empty_sum == 7:
                 self.state = 0
+
+def move(board, picked_column, turn):
+        
+        if picked_column < 0 or picked_column > 6:
+            # print or return a value for invalid input
+            print("Invalid column, enter again")
+            return
+            
+        row = 5
+        
+        # check 
+        while row >= 0 and board[0][row][picked_column] == 0:
+            row -= 1
+            
+        if row == -1:
+            # print column full
+            print("Column is full, enter another column")
+            return
+        
+        board[0][row][picked_column] = 0
+        board[turn][row][picked_column] = 1
