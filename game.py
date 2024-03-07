@@ -1,4 +1,5 @@
 import numpy as np
+import heuristics
 
 class Game: 
     def __init__(self):
@@ -130,6 +131,12 @@ class Game:
                 empty_sum += self.board[0][0][col]
             if empty_sum == 7:
                 self.state = 0
+
+    def playGame(self):
+    # play game until either player wins or game draws
+        while (self.state == -1):
+            # make best move for current player
+            self.game_move(self.board, heuristics.minimax(self.board, self.player, 4)[1])
 
 def move(board, picked_column, turn):
         
