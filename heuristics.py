@@ -2,21 +2,17 @@ import numpy as np
 import game
 
 # sigmoid function
-def scaled_sigmoid(x):
+def scaled_sigmoid(x): # map number from [-inf, inf] into [-1, 1]
     return 2 / (1 + np.exp(-x)) - 1
 
 # static evaluation of position
 def static_evaluation(board, player):
+    print(center_control_val(board, player) + vertical_chain_val(board, player))
     return scaled_sigmoid(center_control_val(board, player) + vertical_chain_val(board, player))
 
 # heuristic for center control
 def center_control_val(board, player):
-    difference_Val = 0
-    if player == 1:
-        difference_Val = center_control(board,1) - center_control(board, 2)
-    else:
-        difference_Val = center_control(board,2) - center_control(board, 1)
-    
+    difference_Val = center_control(board,1) - center_control(board, 2)
     return scaled_sigmoid(difference_Val)
 
 # evaluates center control for the player
@@ -28,10 +24,7 @@ def center_control(board, player):
 
 # heuristic for vertical chains
 def vertical_chain_val(board, player):
-    if player == 1:
-        return vertical_chain(board, 1) - vertical_chain(board, 2)
-    else:
-        return vertical_chain(board, 2) - vertical_chain(board, 1)
+    return vertical_chain(board, 1) - vertical_chain(board, 2)
         
 # checks the number of 3 consecutive same player move in a column alligned together
 def vertical_chain(board, player):

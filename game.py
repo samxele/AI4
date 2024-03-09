@@ -1,6 +1,8 @@
 import numpy as np
 import heuristics
 
+epsilon = 0.00001
+
 class Game: 
     def __init__(self):
         self.board = np.zeros((3, 6, 7), dtype = int)
@@ -8,24 +10,13 @@ class Game:
         self.state = -1
         self.turn = 1
         self.column = -1
-    
-    def display(self):
-        output = ""
-        for row in range(6):
-            for column in range(7):
-                if (self.board)[0][row][column] == 1:
-                    output += "."
-                elif (self.board)[1][row][column] == 1:
-                    output += "X"
-                elif (self.board)[2][row][column] == 1:
-                    output += "O"
-                output += " "
-            output += "\n"
-        print(output)
-
 
     def game_move(self, picked_column):
         
+        if self.state != -1:
+            print("Game over")
+            return
+
         # calls move from outside the class
         move(self.board, picked_column, self.turn)
 
@@ -138,41 +129,79 @@ class Game:
     def playGame(self):
     # play game until either player wins or game draws
         while (self.state == -1):
-            # make best move for current player for depth 4
-            self.game_move(self.board, self.game_minimax(4)[1])
+            # make best move for current player for depth 3
+            self.game_move(self.game_minimax(3)[1])
+            display(self.board)
+
+def display(board):
+    output = ""
+    for row in range(6):
+        for column in range(7):
+            if (board)[0][row][column] == 1:
+                output += "."
+            elif (board)[1][row][column] == 1:
+                output += "X"
+            elif (board)[2][row][column] == 1:
+                output += "O"
+            output += " "
+        output += "\n"
+    print(output)
 
 def move(board, picked_column, turn):
+
+    if picked_column == -1:
+        return -1
         
-        if picked_column < 0 or picked_column > 6:
-            # print or return a value for invalid input
-            print("Invalid column, enter again")
-            return
-            
-        row = 5
-        # check 
-        while row >= 0 and board[0][row][picked_column] == 0:
-            row -= 1
-            
-        if row == -1:
-            # print column full
-            print("Column is full, enter another column")
-            return
+    row = 5
+    # check 
+    while row >= 0 and board[0][row][picked_column] == 0:
+        row -= 1
         
-        board[0][row][picked_column] = 0
-        board[turn][row][picked_column] = 1
+    if row == -1:
+        # print column full
+        print("Column is full, enter another column")
+        return
+    
+    board[0][row][picked_column] = 0
+    board[turn][row][picked_column] = 1
 
 def minimax(board, player, depth):
     # goal is for P1 to maximize score and for P2 to minimize score
     # valid scores can be between -1 and 1
+
+    #display(board)
+    #print (heuristics.static_evaluation(board, player),-1)
+
     if depth == 0:
-        return heuristics.static_evaluation(board, player)
+        return (heuristics.static_evaluation(board, player), -1)
+
+    maxEval = -1
+    evals = []
+    for i in range(7):
+        mod_board = np.copy(board)
+        move(mod_board, i, player)
+        # use new board, switch player's turn, and go deeper
+        eval = minimax(mod_board, 3 - player, depth - 1)[0]
+        if player == 2:
+            eval *= -1
+        evals.append(eval)
+        if eval >= maxEval:
+            maxEval = eval
+    best_moves = []
+    for i in range(len(evals)):
+        if evals[i] > maxEval - epsilon:
+            best_moves.append(i)
+    best_move = np.random.choice(best_moves)
+    return (maxEval * (1 if player == 1 else -1), best_move)
+
+    """
     elif player == 1:
         # player 1 wants to do MUCH better than -1 (maximize score)
         maxEval = -1
         best_move = -1
         for i in range(7):
-            mod_board = board
-            mod_board.move(i)
+            mod_board = np.copy(board)
+            move(mod_board, i, 1)
             # use new board, switch player's turn, and go deeper
             eval = minimax(mod_board, 2, depth - 1)[0]
             if eval >= maxEval:
@@ -182,17 +211,23 @@ def minimax(board, player, depth):
     elif player == 2:
         # player 2 wants to do MUCH better than 1 (minimize score)
         minEval = 1
-        best_move = -1
+        evals = []
         for i in range(7):
-            mod_board = board
-            mod_board.move(i)
+            mod_board = np.copy(board)
+            move(mod_board, i, 2)
             # use new board, switch player's turn, and go deeper
             eval = minimax(mod_board, 1, depth - 1)[0]
+            evals.append(eval)
             if eval <= minEval:
                 minEval = eval
-                best_move = i
+        best_moves = []
+        for i in evals:
+            if i < minEval + epsilon:
+                best_moves.append(i)
+        best_move = np.choice(best_moves)
         return (minEval, best_move)
     else:
         # error checking for invalid player number
         print("Invaild player!")
         return
+    """
