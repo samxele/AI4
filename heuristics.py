@@ -7,8 +7,8 @@ def scaled_sigmoid(x): # map number from [-inf, inf] into [-1, 1]
 
 # static evaluation of position
 def static_evaluation(board, player):
-    print(center_control_val(board, player) + vertical_chain_val(board, player))
-    return scaled_sigmoid(center_control_val(board, player) + vertical_chain_val(board, player))
+    print(scaled_sigmoid(center_control_val(board, player) + 3 * vertical_chain_val(board, player)))
+    return scaled_sigmoid(center_control_val(board, player) + 3 * vertical_chain_val(board, player))
 
 # heuristic for center control
 def center_control_val(board, player):
