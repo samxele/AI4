@@ -1,5 +1,6 @@
 import numpy as np
 import heuristics
+import time
 
 epsilon = 0.00001
 
@@ -33,7 +34,8 @@ class Game:
             self.turn = 1
 
     def game_win(self):
-        self.state = win(self.board, self.column, self.turn)
+        if self.state == -1:
+            self.state = win(self.board, self.turn)
 
     def game_minimax(self, depth):
         return minimax(self.board, self.turn, 0, depth)
@@ -42,12 +44,10 @@ class Game:
     # play game until either player wins or game draws
         while (self.state == -1):
             # make best move for current player for depth 3
-            self.game_move(self.game_minimax(3)[1])
-            print("Hi: ", self.state)
+            self.game_move(self.game_minimax(1)[1])
             self.game_win()
             if pick_display == 1:
                 display(self.board)
-                print("Hi: ", self.state)
 
 def display(board):
     output = ""
@@ -79,85 +79,36 @@ def move(board, picked_column, turn):
     board[0][row][picked_column] = 0
     board[turn][row][picked_column] = 1
 
-def win(board, picked_column, turn):
-    # check if there is something in the last column
-    check_column = 0
-    for i in range(6):
-        check_column += board[turn][i][picked_column]
-
-    # the highest possible is at row 0
-    highest = 0
-    # iterate while the piece is there
-    while board[turn][highest][picked_column] == 0:
-        highest += 1
-        if highest == 6:
-            # the column is empty, and this edge case is triggered only at game start
-            # so the game is ongoing
-            return -1
+def win(board, turn):
     
-    # check whether it works
     has_won = False
-    squares_up = highest + 1
-    squares_down = 6 - highest
-    squares_left = picked_column + 1
-    squares_right = 7 - picked_column
+
+    dirs = [(0,1),(1,0),(1,1),(1,-1)] 
+
+    # for each space (i, j)
+        # for each direction d
+            # visit 4 spaces in the given direction 
+            # if off the grid, continue
+            # if all X's or O's, finish 
+            # otherwise, there's no win
     
-    # checks down
-    if squares_down >= 4:
-        square_sum = 0
-        for i in range(0, 4):
-            square_sum += board[turn][highest + i][picked_column]
-        if square_sum == 4:
-            has_won = True
+    # [1 for i in range(5)] = [1, 1, 1, 1, 1]
+    # [i for i in range(5)] = [0, 1, 2, 3, 4]
+    # [i**2 for i in range(5)] = [0, 1, 4, 9, 16]
+    # [(i, j) for i in range(7) for j in range(6)] = [(0,1),(0,2)...]
     
-    # checks left
-    if squares_left >= 4:
-        square_sum = 0
-        for i in range(0, 4):
-            square_sum += board[turn][highest][picked_column - i]
-        if square_sum == 4:
-            has_won = True
-    
-    # checks right
-    if squares_right >= 4:
-        square_sum = 0
-        for i in range(0, 4):
-            square_sum += board[turn][highest][picked_column + i]
-        if square_sum == 4:
-            has_won = True
-    
-    # checks top left
-    if squares_up >= 4 and squares_left >= 4:
-        square_sum = 0
-        for i in range(0, 4):
-            square_sum += board[turn][highest - i][picked_column - i]
-        if square_sum == 4:
-            has_won = True
-    
-    # checks bottom right
-    if squares_down >= 4 and squares_right >= 4:
-        square_sum = 0
-        for i in range(0, 4):
-            square_sum += board[turn][highest + i][picked_column + i]
-        if square_sum == 4:
-            has_won = True
-    
-    # checks top right 
-    if squares_up >= 4 and squares_right >= 4:
-        square_sum = 0
-        for i in range(0, 4):
-            square_sum += board[turn][highest - i][picked_column + i]
-        if square_sum == 4:
-            has_won = True
-    
-    # checks bottom left
-    if squares_down >= 4 and squares_left >= 4:
-        square_sum = 0
-        for i in range(0, 4):
-            square_sum += board[turn][highest + i][picked_column - i]
-        if square_sum == 4:
-            has_won = True
-    
+    for row in range(6):
+        for col in range(7):
+            for (dx, dy) in dirs:
+                if 0 <= (row + 3 * dx) <= 5 and 0 <= (col + 3 * dy) <= 6:
+                    # check 4 in a row in the direction of (dx, dy)
+                    check_sum = 0
+                    for i in range(4):
+                        check_sum += board[turn][row + i * dx][col + i * dy]
+                    if check_sum == 4:
+                        has_won = True
+                
+
     # modify the state based on boolean
     if has_won:
         return turn
@@ -167,17 +118,17 @@ def win(board, picked_column, turn):
             empty_sum += board[0][0][col]
         if empty_sum == 0:
             return 0
+    return -1
 
 def minimax(board, player, picked_column, depth):
     # goal is for P1 to maximize score and for P2 to minimize score
     # valid scores can be between -1 and 1
-
     #display(board)
     #print (heuristics.static_evaluation(board, player),-1)
-    if win(board, picked_column, player) == player:
-        return 1
-    if win(board, picked_column, player) == 3 - player:
-        return -1
+    if win(board, player) == player:
+        return (1, picked_column)
+    if win(board, player) == 3 - player:
+        return (-1, picked_column)
     
     if depth == 0:
         return (heuristics.static_evaluation(board, player), -1)
@@ -194,6 +145,8 @@ def minimax(board, player, picked_column, depth):
         evals.append(eval)
         if eval >= maxEval:
             maxEval = eval
+    if depth == 1:
+        print (evals)
     best_moves = []
     for i in range(len(evals)):
         if evals[i] > maxEval - epsilon:
