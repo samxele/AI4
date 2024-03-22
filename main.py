@@ -1,5 +1,5 @@
 import numpy as np
-import game
+from game import *
 import heuristics
 '''
 DRAWN POSITION:
@@ -48,7 +48,6 @@ for i in range(1,7):
 display(thegame)
 
 '''
-special = game.Game()
+special = Game()
 
-special.playGame()
-game.display(special)
+special.playGame(pick_display = 1)
