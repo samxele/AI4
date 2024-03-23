@@ -6,7 +6,7 @@ import time
 # np.random.seed(0)
 
 epsilon = 0.00001
-maxDepth = 4
+maxDepth = 6
 
 class Game: 
     def __init__(self):
@@ -47,7 +47,7 @@ class Game:
     def playGame(self, pick_display = 0):
     # play game until either player wins or game draws
         while (self.state == -1):
-            # make best move for current player for depth 3
+            # make best move for current player for the max depth
             self.game_move(self.game_minimax(maxDepth)[1])
             self.game_win()
             if pick_display == 1:
