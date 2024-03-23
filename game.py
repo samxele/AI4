@@ -2,7 +2,11 @@ import numpy as np
 import heuristics
 import time
 
+# seed np rng
+# np.random.seed(0)
+
 epsilon = 0.00001
+maxDepth = 4
 
 class Game: 
     def __init__(self):
@@ -44,7 +48,7 @@ class Game:
     # play game until either player wins or game draws
         while (self.state == -1):
             # make best move for current player for depth 3
-            self.game_move(self.game_minimax(1)[1])
+            self.game_move(self.game_minimax(maxDepth)[1])
             self.game_win()
             if pick_display == 1:
                 display(self.board)
@@ -74,7 +78,7 @@ def move(board, picked_column, turn):
         row -= 1
         
     if row == -1:
-        return
+        return -1
     
     board[0][row][picked_column] = 0
     board[turn][row][picked_column] = 1
@@ -85,18 +89,6 @@ def win(board, turn):
 
     dirs = [(0,1),(1,0),(1,1),(1,-1)] 
 
-    # for each space (i, j)
-        # for each direction d
-            # visit 4 spaces in the given direction 
-            # if off the grid, continue
-            # if all X's or O's, finish 
-            # otherwise, there's no win
-    
-    # [1 for i in range(5)] = [1, 1, 1, 1, 1]
-    # [i for i in range(5)] = [0, 1, 2, 3, 4]
-    # [i**2 for i in range(5)] = [0, 1, 4, 9, 16]
-    # [(i, j) for i in range(7) for j in range(6)] = [(0,1),(0,2)...]
-    
     for row in range(6):
         for col in range(7):
             for (dx, dy) in dirs:
@@ -121,23 +113,85 @@ def win(board, turn):
     return -1
 
 def minimax(board, player, picked_column, depth):
+    # check if we win, lose, or draw
+    won_player = win(board, player)
+    if won_player == 1:
+        # print ("A", won_player, player)
+        # display(board)
+        return (2, picked_column)
+    if won_player == 2:
+        # print ("B", won_player, player)
+        return (-2, picked_column)
+    if won_player == 0:
+        # print ("C")
+        return (0, picked_column)
+
+    # if depth is 0, then return heuristic value
+    if depth == 0:
+        return (heuristics.static_evaluation(board, player), -1)
+
+    # if we are player 1, then:
+        # value = -infinity
+        # for each child of node, do:
+            # set the value to max of (board, value, minimax(child, 2, depth - 1))
+    # return value
+    
+    if player == 1:
+        max_eval = float('-inf')
+        best_move = -1
+        for possible_move in range(7):
+            mod_board = np.copy(board)
+            if move(mod_board, possible_move, 1) == -1:
+                continue
+            val = minimax(mod_board, 2, possible_move, depth - 1)[0]
+            # CHECK FOR MATE IN ONE ERRORS
+            if depth == maxDepth:
+                print((possible_move, val))
+            if val > max_eval:
+                max_eval = val
+                best_move = possible_move
+        return (max_eval, best_move)
+    if player == 2:
+        min_eval = float('+inf')
+        best_move = -1
+        for possible_move in range(7):
+            mod_board = np.copy(board)
+            if move(mod_board, possible_move, 2) == -1:
+                continue
+            val = minimax(mod_board, 1, possible_move, depth - 1)[0]
+            # CHECK FOR MATE IN ONE ERRORS
+            if depth == maxDepth:
+                print((possible_move, val))
+            if val < min_eval:
+                min_eval = val
+                best_move = possible_move
+        return (min_eval, best_move)
+
+"""
+
+def minimax(board, player, picked_column, depth):
     # goal is for P1 to maximize score and for P2 to minimize score
     # valid scores can be between -1 and 1
-    #display(board)
-    #print (heuristics.static_evaluation(board, player),-1)
-    if win(board, player) == player:
-        return (1, picked_column)
-    if win(board, player) == 3 - player:
-        return (-1, picked_column)
+    
+    won_player = win(board, player)
+    
+    # return 2/-2 on a win instead of 1/-1
+
+    if won_player == player:
+        return (2+epsilon*depth, picked_column)
+    if won_player == 3 - player:
+        return (-2+epsilon*depth, picked_column)
     
     if depth == 0:
         return (heuristics.static_evaluation(board, player), -1)
 
-    maxEval = -1
+    maxEval = -100
     evals = []
     for i in range(7):
         mod_board = np.copy(board)
-        move(mod_board, i, player)
+        if move(mod_board, i, player) == -1:
+            evals.append(None)
+            continue
         # use new board, switch player's turn, and go deeper
         eval = minimax(mod_board, 3 - player, i, depth - 1)[0]
         if player == 2:
@@ -145,11 +199,16 @@ def minimax(board, player, picked_column, depth):
         evals.append(eval)
         if eval >= maxEval:
             maxEval = eval
-    if depth == 1:
+
+    if depth == maxDepth:
         print (evals)
+
     best_moves = []
     for i in range(len(evals)):
+        if evals[i] == None:
+            continue
         if evals[i] > maxEval - epsilon:
             best_moves.append(i)
     best_move = np.random.choice(best_moves)
     return (maxEval * (1 if player == 1 else -1), best_move)
+"""
