@@ -6,7 +6,7 @@ import time
 # np.random.seed(0)
 
 epsilon = 0.00001
-maxDepth = 4
+maxDepth = 8
 
 class Game: 
     def __init__(self):
@@ -42,12 +42,12 @@ class Game:
             self.state = win(self.board, self.turn)
 
     def game_minimax(self, depth):
-        return minimax(self.board, self.turn, 0, depth)
+        return minimax(self.board, self.turn, 0, depth, -1, 1)
 
     def playGame(self, pick_display = 0):
     # play game until either player wins or game draws
         while (self.state == -1):
-            # make best move for current player for depth 3
+            # make best move for current player for the max depth
             self.game_move(self.game_minimax(maxDepth)[1])
             self.game_win()
             if pick_display == 1:
@@ -112,7 +112,7 @@ def win(board, turn):
             return 0
     return -1
 
-def minimax(board, player, picked_column, depth):
+def minimax(board, player, picked_column, depth, alpha, beta):
     # check if we win, lose, or draw
     won_player = win(board, player)
     if won_player == 1:
@@ -143,13 +143,16 @@ def minimax(board, player, picked_column, depth):
             mod_board = np.copy(board)
             if move(mod_board, possible_move, 1) == -1:
                 continue
-            val = minimax(mod_board, 2, possible_move, depth - 1)[0]
+            val = minimax(mod_board, 2, possible_move, depth - 1, alpha, beta)[0]
             # CHECK FOR MATE IN ONE ERRORS
             if depth == maxDepth:
                 print((possible_move, val))
             if val > max_eval:
                 max_eval = val
                 best_move = possible_move
+            alpha = max(alpha, max_eval)
+            if beta <= alpha:
+                break
         return (max_eval, best_move)
     if player == 2:
         min_eval = float('+inf')
@@ -158,13 +161,16 @@ def minimax(board, player, picked_column, depth):
             mod_board = np.copy(board)
             if move(mod_board, possible_move, 2) == -1:
                 continue
-            val = minimax(mod_board, 1, possible_move, depth - 1)[0]
+            val = minimax(mod_board, 1, possible_move, depth - 1, alpha, beta)[0]
             # CHECK FOR MATE IN ONE ERRORS
             if depth == maxDepth:
                 print((possible_move, val))
             if val < min_eval:
                 min_eval = val
                 best_move = possible_move
+            beta = min(beta, min_eval)
+            if beta <= alpha:
+                break
         return (min_eval, best_move)
 
 """
