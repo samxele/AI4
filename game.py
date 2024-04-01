@@ -6,7 +6,7 @@ import time
 # np.random.seed(0)
 
 epsilon = 0.00001
-maxDepth = 8
+maxDepth = 7
 
 class Game: 
     def __init__(self):
@@ -100,7 +100,6 @@ def win(board, turn):
                     if check_sum == 4:
                         has_won = True
                 
-
     # modify the state based on boolean
     if has_won:
         return turn
