@@ -8,9 +8,7 @@ def scaled_sigmoid(x): # map number from [-inf, inf] into [-1, 1]
 # static evaluation of position
 def static_evaluation(board, player):
     # print(scaled_sigmoid(center_control_val(board, player) + 3 * vertical_chain_val(board, player)))
-    return scaled_sigmoid(1 * center_control_val(board, player) + 
-                          # 1 * horizontal_chain_val(board, player) +
-                          # 1 * vertical_chain_val(board, player) +
+    return scaled_sigmoid(1 * center_control_val(board, player) +
                           1 * win_threat_val(board, player))
 
 # heuristic for center control
@@ -29,36 +27,6 @@ def center_control(board, player):
     center_control_score += 0.50 * np.sum(board[player, :, 5])
     center_control_score += 0.25 * np.sum(board[player, :, 6])
     return center_control_score
-
-# heuristic for horizontal chains
-def horizontal_chain_val(board, player):
-    return horizontal_chain(board, 1) - horizontal_chain(board, 2)
-        
-# checks the number of 3 consecutive same player move in a column alligned together
-def horizontal_chain(board, player):
-    # find the number 3-length vertical chains for the player
-    chain_score = 0
-    for row in range(4):
-        for col in range(7):
-            # check for 3 adjacent pieces
-            if board[player, row, col:col+3].sum() == 3: 
-                chain_score += 1
-    return(chain_score)
-
-# heuristic for vertical chains
-def vertical_chain_val(board, player):
-    return vertical_chain(board, 1) - vertical_chain(board, 2)
-        
-# checks the number of 3 consecutive same player move in a column alligned together
-def vertical_chain(board, player):
-    # find the number 3-length vertical chains for the player
-    chain_score = 0
-    for row in range(4):
-        for col in range(7):
-            # check for 3 adjacent pieces
-            if board[player, row:row+3, col].sum() == 3: 
-                chain_score += 1
-    return(chain_score)
 
 # heuristic for win threats
 def win_threat_val(board, player):

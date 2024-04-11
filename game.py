@@ -6,7 +6,7 @@ import time
 # np.random.seed(0)
 
 epsilon = 0.00001
-maxDepth = 7
+maxDepth = 6
 
 class Game: 
     def __init__(self):
