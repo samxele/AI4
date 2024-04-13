@@ -49,5 +49,4 @@ display(thegame)
 
 '''
 special = Game()
-
 special.playGame(pick_display = 1)
