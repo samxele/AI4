@@ -1,23 +1,33 @@
 import numpy as np
 import heuristics
-import time
+from dataclasses import dataclass
 
 # seed np rng
 # np.random.seed(0)
 
 epsilon = 0.00001
-maxDepth = 6
+maxDepth = 4
+
+@dataclass
+class Experience:
+    state: np.ndarray
+    action: int
+    reward: float
+    next_state: np.ndarray
 
 class Game: 
     def __init__(self):
         self.board = np.zeros((3, 6, 7), dtype = int)
         self.board[0] = np.ones((6, 7), dtype = int)
-        self.state = -1
-        self.turn = 1
-        self.column = -1
+        self.state = -1  # 0 if drawn, {player} if won
+        self.turn = 1    # Current player's turn
+        self.column = -1 # Last picked column (starts at 0)
+        self.history = []     # Contains all boards
+        self.history.append(np.copy(self.board))
+        self.experiences = [] # Contains all experiences
 
     def game_move(self, picked_column):
-        
+
         if self.state != -1:
             print("Game over")
             return
@@ -30,6 +40,10 @@ class Game:
         
         # check for win
         self.game_win()
+        
+        # add new board to history, add new experience
+        self.history.append(np.copy(self.board))
+        self.experiences.append(Experience(self.history[-2], picked_column, None, self.history[-1]))
         
         # turn change
         if self.turn == 1:
@@ -45,11 +59,10 @@ class Game:
         return minimax(self.board, self.turn, 0, depth, -1, 1)
 
     def playGame(self, pick_display = 0):
-    # play game until either player wins or game draws
+        # play game until either player wins or game draws
         while (self.state == -1):
             # make best move for current player for the max depth
             self.game_move(self.game_minimax(maxDepth)[1])
-            self.game_win()
             if pick_display == 1:
                 display(self.board)
 
@@ -171,49 +184,3 @@ def minimax(board, player, picked_column, depth, alpha, beta):
             if beta <= alpha:
                 break
         return (min_eval, best_move)
-
-"""
-
-def minimax(board, player, picked_column, depth):
-    # goal is for P1 to maximize score and for P2 to minimize score
-    # valid scores can be between -1 and 1
-    
-    won_player = win(board, player)
-    
-    # return 2/-2 on a win instead of 1/-1
-
-    if won_player == player:
-        return (2+epsilon*depth, picked_column)
-    if won_player == 3 - player:
-        return (-2+epsilon*depth, picked_column)
-    
-    if depth == 0:
-        return (heuristics.static_evaluation(board, player), -1)
-
-    maxEval = -100
-    evals = []
-    for i in range(7):
-        mod_board = np.copy(board)
-        if move(mod_board, i, player) == -1:
-            evals.append(None)
-            continue
-        # use new board, switch player's turn, and go deeper
-        eval = minimax(mod_board, 3 - player, i, depth - 1)[0]
-        if player == 2:
-            eval *= -1
-        evals.append(eval)
-        if eval >= maxEval:
-            maxEval = eval
-
-    if depth == maxDepth:
-        print (evals)
-
-    best_moves = []
-    for i in range(len(evals)):
-        if evals[i] == None:
-            continue
-        if evals[i] > maxEval - epsilon:
-            best_moves.append(i)
-    best_move = np.random.choice(best_moves)
-    return (maxEval * (1 if player == 1 else -1), best_move)
-"""
