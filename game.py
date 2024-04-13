@@ -43,7 +43,7 @@ class Game:
         
         # add new board to history, add new experience
         self.history.append(np.copy(self.board))
-        self.experiences.append((self.history[-2], picked_column, None, self.history[-1]))
+        self.experiences.append(Experience(self.history[-2], picked_column, None, self.history[-1]))
         
         # turn change
         if self.turn == 1:
