@@ -49,4 +49,4 @@ display(thegame)
 
 '''
 special = Game()
-special.playGame(pick_display = 1)
+special.playGame(agent1 = 1, agent2 = 9, pick_display = 1)

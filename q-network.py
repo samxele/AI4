@@ -14,7 +14,6 @@ class DeepQNetworkConnect4(nn.Module):
     def __init__(self):
         super().__init__()
         self.network = nn.Sequential(
-            nn.Flatten(),
             nn.Linear(126, 40),
             nn.ReLU(),
             nn.Linear(40, 20),

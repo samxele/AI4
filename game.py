@@ -1,6 +1,12 @@
 import numpy as np
 import heuristics
+import random
 from dataclasses import dataclass
+
+import importlib  
+qnetwork = importlib.import_module("q-network")
+import torch
+import torch.nn as nn
 
 # seed np rng
 # np.random.seed(0)
@@ -32,8 +38,9 @@ class Game:
             print("Game over")
             return
 
-        # calls move from outside the class
-        move(self.board, picked_column, self.turn)
+        # calls move from outside the class and throws error if column full
+        if move(self.board, picked_column, self.turn) == -1:
+            return -1
 
         # update last chosen column
         self.column = picked_column
@@ -51,18 +58,47 @@ class Game:
         else:
             self.turn = 1
 
+        # nothing went wrong! returns 0
+        return 0
+
     def game_win(self):
         if self.state == -1:
             self.state = win(self.board, self.turn)
 
-    def game_minimax(self, depth):
-        return minimax(self.board, self.turn, 0, depth, -1, 1)
+    def random_agent(self):
+        return random.randint(0, 6)
 
-    def playGame(self, pick_display = 0):
+    def minimax_agent(self, depth):
+        return minimax(self.board, self.turn, 0, depth, -1, 1) # (eval, move)
+
+    def q_agent(self):
+        # create a new network, ask it for a move
+        q = qnetwork.DeepQNetworkConnect4()
+        board = np.ndarray.flatten(np.copy(self.board))
+        q_choices = q.forward(torch.from_numpy(board).float())
+        return q_choices
+
+    def playGame(self, agent1 = 1, agent2 = 1, pick_display = 0):
         # play game until either player wins or game draws
         while (self.state == -1):
-            # make best move for current player for the max depth
-            self.game_move(self.game_minimax(maxDepth)[1])
+            # figure out who's turn it is
+            agent = agent1 if self.turn == 1 else agent2
+            
+            # take a turn
+            if agent == 1: 
+                # random
+                while self.game_move(self.random_agent()) == -1:
+                    pass
+            elif agent == 3: 
+                # minimax
+                self.game_move(self.minimax_agent(maxDepth)[1])
+            elif agent == 9: 
+                # DOUBLE CHECK that this doesn't play on a full column!
+                q_choices = self.q_agent()
+                _, max_index = torch.max(q_choices, dim = 0)
+                self.game_move(max_index)
+            
+            # board display
             if pick_display == 1:
                 display(self.board)
 
@@ -128,14 +164,10 @@ def minimax(board, player, picked_column, depth, alpha, beta):
     # check if we win, lose, or draw
     won_player = win(board, player)
     if won_player == 1:
-        # print ("A", won_player, player)
-        # display(board)
         return (2, picked_column)
     if won_player == 2:
-        # print ("B", won_player, player)
         return (-2, picked_column)
     if won_player == 0:
-        # print ("C")
         return (0, picked_column)
 
     # if depth is 0, then return heuristic value
