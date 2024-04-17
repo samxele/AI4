@@ -23,7 +23,7 @@ class DeepQNetworkConnect4(nn.Module):
         print(self.network)
 
     def forward(self, x):
-        return self.network(x)
+        return self.network(x) # returns a 7-element tensor
   
 # Instantiate the replay buffer
 class ReplayBuffer:
@@ -44,17 +44,7 @@ class ReplayBuffer:
         while len(sample_nums) < num_samples:
             sample_nums.add(random.randrange(len(self.buffer)))
         experiences = [self.buffer[i] for i in sample_nums]
-        return {"obs":      torch.stack([torch.as_tensor(experience["obs"],      dtype=torch.float32) for experience in experiences], 0),
-                "next_obs": torch.stack([torch.as_tensor(experience["next_obs"], dtype=torch.float32) for experience in experiences], 0),
-                "actions":  torch.stack([torch.as_tensor(experience["action"],   dtype=torch.int64)   for experience in experiences], 0),
-                "rewards":  torch.stack([torch.as_tensor(experience["reward"],   dtype=torch.float32) for experience in experiences], 0),
-                "dones":    torch.stack([torch.as_tensor(experience["done"],     dtype=torch.float32) for experience in experiences], 0)}
-    
-def get_rolling_average(items, num):
-    rolling = []
-    for i in range(len(items)-num):
-        rolling.append(sum(items[i:i+num])/num)
-    return rolling
+        return experiences
 
 def calculate_epsilon(step, epsilon_start, epsilon_finish, total_timesteps, exploration_fraction):
     finish_step = total_timesteps * exploration_fraction
@@ -62,6 +52,39 @@ def calculate_epsilon(step, epsilon_start, epsilon_finish, total_timesteps, expl
         return epsilon_finish
     epsilon_range = epsilon_start - epsilon_finish
     return epsilon_finish + (((finish_step - step) / finish_step) * epsilon_range)
+
+# HYPERPARAMETERS
+seed = 0
+buffer_size = 100000
+learning_rate = 2.5e-4
+pretrain_games = 1
+total_timesteps = 300000
+epsilon_start = 0.9
+epsilon_finish = 0
+exploration_fraction = 0.8
+
+def train():
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True if seed > 0 else False
+
+    # Initialise replay memory D to capacity N
+    buffer = ReplayBuffer(buffer_size)
+
+    # Initialize action-value function Q and target network
+    q_network = DeepQNetworkConnect4().to(device)
+    target_network = DeepQNetworkConnect4().to(device)
+    target_network.load_state_dict(q_network.state_dict())
+    optimiser = torch.optim.Adam(q_network.parameters(), learning_rate)
+
+    for step in range(pretrain_games):
+        # Generate games and add experiences
+        g = game.Game()
+        g.playGame(agent1 = 1, agent2 = 3)
+        for experience in g.experiences:
+            buffer.add(experience)
 
 '''
 def train(env, total_timesteps, batch_size, buffer_size, train_frequency, seed,

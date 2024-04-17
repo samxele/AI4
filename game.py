@@ -12,7 +12,7 @@ import torch.nn as nn
 # np.random.seed(0)
 
 epsilon = 0.00001
-maxDepth = 4
+maxDepth = 2
 
 @dataclass
 class Experience:
@@ -71,9 +71,12 @@ class Game:
     def minimax_agent(self, depth):
         return minimax(self.board, self.turn, 0, depth, -1, 1) # (eval, move)
 
-    def q_agent(self):
+    def q_agent(self, q_identity = None):
         # create a new network, ask it for a move
-        q = qnetwork.DeepQNetworkConnect4()
+        if q_identity == None:
+            q = qnetwork.DeepQNetworkConnect4()
+        else:
+            q = q_identity
         board = np.ndarray.flatten(np.copy(self.board))
         q_choices = q.forward(torch.from_numpy(board).float())
         return q_choices
@@ -92,11 +95,15 @@ class Game:
             elif agent == 3: 
                 # minimax
                 self.game_move(self.minimax_agent(maxDepth)[1])
-            elif agent == 9: 
-                # DOUBLE CHECK that this doesn't play on a full column!
+            else: 
+                # TODO: Pick the highest / lowest value in the tensor that's valid!
                 q_choices = self.q_agent()
-                _, max_index = torch.max(q_choices, dim = 0)
-                self.game_move(max_index)
+                if self.turn == 1:
+                    _, max_index = torch.max(q_choices, dim = 0)
+                    self.game_move(max_index)
+                else:
+                    _, min_index = torch.min(q_choices, dim = 0)
+                    self.game_move(min_index)
             
             # board display
             if pick_display == 1:
