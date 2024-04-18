@@ -79,7 +79,8 @@ class Game:
             q = q_identity
         board = np.ndarray.flatten(np.copy(self.board))
         q_choices = q.forward(torch.from_numpy(board).float())
-        return q_choices
+        _, indices = torch.sort(q_choices) # ascending order
+        return indices
 
     def playGame(self, agent1 = 1, agent2 = 1, pick_display = 0):
         # play game until either player wins or game draws
@@ -96,14 +97,15 @@ class Game:
                 # minimax
                 self.game_move(self.minimax_agent(maxDepth)[1])
             else: 
-                # TODO: Pick the highest / lowest value in the tensor that's valid!
-                q_choices = self.q_agent()
+                q_choices = self.q_agent(agent) # If q-agent, should NOT be 1 or 3
                 if self.turn == 1:
-                    _, max_index = torch.max(q_choices, dim = 0)
-                    self.game_move(max_index)
+                    index_chosen = 6
+                    while index_chosen >= 0 and self.game_move(q_choices[index_chosen]) == -1:
+                        index_chosen -= 1
                 else:
-                    _, min_index = torch.min(q_choices, dim = 0)
-                    self.game_move(min_index)
+                    index_chosen = 0
+                    while index_chosen <= 6 and self.game_move(q_choices[index_chosen]) == -1:
+                        index_chosen += 1
             
             # board display
             if pick_display == 1:
@@ -195,9 +197,6 @@ def minimax(board, player, picked_column, depth, alpha, beta):
             if move(mod_board, possible_move, 1) == -1:
                 continue
             val = minimax(mod_board, 2, possible_move, depth - 1, alpha, beta)[0]
-            # CHECK FOR MATE IN ONE ERRORS
-            if depth == maxDepth:
-                print((possible_move, val))
             if val > max_eval:
                 max_eval = val
                 best_move = possible_move
@@ -213,9 +212,6 @@ def minimax(board, player, picked_column, depth, alpha, beta):
             if move(mod_board, possible_move, 2) == -1:
                 continue
             val = minimax(mod_board, 1, possible_move, depth - 1, alpha, beta)[0]
-            # CHECK FOR MATE IN ONE ERRORS
-            if depth == maxDepth:
-                print((possible_move, val))
             if val < min_eval:
                 min_eval = val
                 best_move = possible_move
