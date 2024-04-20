@@ -3,8 +3,6 @@ import heuristics
 import random
 from dataclasses import dataclass
 
-import importlib  
-qnetwork = importlib.import_module("q-network")
 import torch
 import torch.nn as nn
 
@@ -73,11 +71,8 @@ class Game:
 
     def q_agent(self, q_identity = None):
         # create a new network, ask it for a move
-        if q_identity == None:
-            q = qnetwork.DeepQNetworkConnect4()
-        else:
-            q = q_identity
-        board = np.ndarray.flatten(np.copy(self.board))
+        q = q_identity
+        board = np.copy(self.board)
         q_choices = q.forward(torch.from_numpy(board).float())
         _, indices = torch.sort(q_choices) # ascending order
         return indices

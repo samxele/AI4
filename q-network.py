@@ -14,6 +14,7 @@ class DeepQNetworkConnect4(nn.Module):
     def __init__(self):
         super().__init__()
         self.network = nn.Sequential(
+            nn.Flatten(start_dim = 0),
             nn.Linear(126, 40),
             nn.ReLU(),
             nn.Linear(40, 20),
@@ -34,7 +35,7 @@ class ReplayBuffer:
     def add(self, frame):
         self.buffer.append(frame)
         if len(self.buffer) > self.max_frames:
-            del self.buffer[0:len(self.buffer)-self.max_frames]
+            del self.buffer[0:(len(self.buffer)-self.max_frames)]
 
     def sample(self, num_samples):
         # Ensure we don't pick the same frame twice
@@ -53,16 +54,17 @@ def calculate_epsilon(step, epsilon_start, epsilon_finish, total_timesteps, expl
     return epsilon_finish + (((finish_step - step) / finish_step) * epsilon_range)
 
 def QLoss(state_evals, next_state_evals):
-  loss = 1000 * torch.mean((state_evals - next_state_evals) ** 2)
+  loss = 1e6 * torch.mean((torch.stack(state_evals) - torch.stack(next_state_evals)) ** 2)
   return loss
 
 # HYPERPARAMETERS
 seed = 0
-buffer_size = 100000
-learning_rate = 2.5e-4
-pretrain_games = 1
+buffer_size = 10
+learning_rate = 2.5e-2
+pretrain_games = 100
+train_games = 20
 ideal_batch_size = 10
-total_timesteps = 10
+total_timesteps = 1e6
 epsilon_start = 0.9
 epsilon_finish = 0
 exploration_fraction = 0.8
@@ -83,27 +85,43 @@ def train():
     target_network.load_state_dict(q_network.state_dict())
     optimiser = torch.optim.Adam(q_network.parameters(), learning_rate)
 
-    for step in range(pretrain_games):
+    for step in range(int(pretrain_games)):
         # Generate games and add experiences
         g = game.Game()
         # TODO: Add options for more agent pairs
         g.playGame(agent1 = 1, agent2 = 3)
+        g.playGame(agent1 = 3, agent2 = 1)
         for experience in g.experiences:
             buffer.add(experience)
 
-    batch = buffer.sample(min(len(buffer.buffer), ideal_batch_size))
-    # states and next states should be floats (same as the OUTPUT)
-    # brackets are required to turn generator into a list
-    states = torch.stack([torch.from_numpy(exp.state) for exp in batch]).float()
-    next_states = torch.stack([torch.from_numpy(exp.next_state) for exp in batch]).float()
-    # get q-network outputs
-    state_q_values = q_network(states)
-    next_state_q_values = q_network(next_states)
+    for iter in range(int(total_timesteps)):
+        
+        for step in range(int(train_games)):
+            # Generate games and add experiences
+            g = game.Game()
+            # TODO: Add options for more agent pairs
+            to_display = iter % 50 == 0
+            g.playGame(agent1 = q_network, agent2 = q_network, pick_display = to_display)
+            for experience in g.experiences:
+                buffer.add(experience)
 
-    # get loss
-    loss = QLoss(state_q_values, next_state_q_values)
-    # backprop
-    with torch.no_grad():
-        optimiser.zero_grad()
-        loss.backward()
-        optimiser.step()
+        batch = buffer.sample(min(len(buffer.buffer), ideal_batch_size))
+        # states and next states should be floats (same as the OUTPUT)
+        # brackets are required to turn generator into a list
+        states = torch.stack([torch.from_numpy(exp.state) for exp in batch]).float()
+        next_states = torch.stack([torch.from_numpy(exp.next_state) for exp in batch]).float()
+        # get q-network outputs
+        state_q_values = [q_network(state) for state in states]
+        next_state_q_values = [target_network(next_state) for next_state in next_states]
+
+        # get loss
+        loss = QLoss(state_q_values, next_state_q_values)
+        # backprop
+        with torch.no_grad():
+            optimiser.zero_grad()
+            loss.backward()
+            optimiser.step()
+        print(iter, loss)
+        target_network = q_network
+
+train()
