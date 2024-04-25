@@ -3,10 +3,10 @@ from game import *
 import heuristics
 
 import importlib  
-qnetwork = importlib.import_module("q-network")
+#qnetwork = importlib.import_module("q-network")
 
-q = qnetwork.DeepQNetworkConnect4()
+#q = qnetwork.DeepQNetworkConnect4()
 #train()
 
-#g = Game()
-#g.playGame(agent1 = 1, agent2 = q, pick_display = 1)
+g = Game()
+g.playGame(agent1 = 3, agent2 = 3, pick_display = 1)
