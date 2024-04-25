@@ -23,10 +23,15 @@ class Game:
         self.turn = 1    # Current player's turn
         self.column = -1 # Last picked column (starts at 0)
         self.history = []     # Contains all boards
-        self.history.append(np.copy(self.board))
         self.experiences = [] # Contains all experiences
 
-    def game_move(self, picked_column):
+    def game_move(self, picked_column, ouragent = False):
+
+        # add new board to history, add new experience
+        if ouragent:
+            self.history.append(np.copy(self.board))
+            if len(self.history) >= 2:
+                self.experiences.append(Experience(self.history[-2], picked_column, None, self.history[-1]))
 
         if self.state != None:
             print("Game over")
@@ -41,10 +46,6 @@ class Game:
         
         # check for win
         self.game_win()
-        
-        # add new board to history, add new experience
-        self.history.append(np.copy(self.board))
-        self.experiences.append(Experience(self.history[-2], picked_column, None, self.history[-1]))
         
         self.turn *= -1
 
@@ -73,46 +74,54 @@ class Game:
         _, indices = torch.sort(q_choices) # ascending order
         return indices
 
-    def playGame(self, agent1 = 1, agent2 = 1, pick_display = 0, epsilon = 0, minmaxrng = 0):
+    def playGame(self, agent1 = 1, agent2 = 1, pick_display = 0, epsilon = 0, minmaxrng = 0, agent_number = 1):
+        
+        # keeps track of the q network's final move
+        our_last_move = -1
+        
         # play game until either player wins or game draws
         while (self.state == None):
             # figure out who's turn it is
+            ouragent = True if self.turn == 1 else False
             agent = agent1 if self.turn == 1 else agent2
             if agent == 1: 
                 # random
-                while self.game_move(self.random_agent()) == -1:
+                while self.game_move(self.random_agent(), ouragent) == -1:
                     pass
             elif agent == 3: 
                 # minimax rng
                 if random.random() < minmaxrng:
-                    while self.game_move(self.minimax_agent(maxDepth)[1]) == -1:
+                    while self.game_move(self.minimax_agent(maxDepth)[1], ouragent) == -1:
                         pass
                 else:
-                    self.game_move(self.minimax_agent(maxDepth)[1])
+                    self.game_move(self.minimax_agent(maxDepth)[1], ouragent)
             else: 
                 if random.random() < epsilon:
-                    while self.game_move(self.random_agent()) == -1:
+                    random_move = self.random_agent()
+                    while self.game_move(random_move, ouragent) == -1:
                         pass
+                    # if it is our turn, update most recent move
+                    if agent_number == self.turn:
+                        our_last_move = random_move
                 else:
                     q_choices = self.q_agent(agent) # If q-agent, should NOT be 1 or 3
                     if self.turn == 1:
                         index_chosen = 6
-                        while index_chosen >= 0 and self.game_move(q_choices[index_chosen]) == -1:
+                        while index_chosen >= 0 and self.game_move(q_choices[index_chosen], ouragent) == -1:
                             index_chosen -= 1
                     else:
                         index_chosen = 0
-                        while index_chosen <= 6 and self.game_move(q_choices[index_chosen]) == -1:
+                        while index_chosen <= 6 and self.game_move(q_choices[index_chosen], ouragent) == -1:
                             index_chosen += 1
+                    # if it is our turn, update most recent move
+                    if agent_number == self.turn:
+                        our_last_move = index_chosen
             # board display
             if pick_display == 1:
                 display(self.board)
-        # set the last experience's reward
-        if self.state == 1:
-            self.experiences[-1].reward = 1
-        elif self.state == -1:
-            self.experiences[-1].reward = -1
-        else:
-            self.experiences[-1].reward = 0
+
+        self.experiences.append(Experience(self.history[-1], our_last_move, self.state, None))
+
 def display(board):
     output = ""
     for row in range(6):
