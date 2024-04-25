@@ -6,11 +6,8 @@ from dataclasses import dataclass
 import torch
 import torch.nn as nn
 
-# seed np rng
-# np.random.seed(0)
-
 epsilon = 0.00001
-maxDepth = 2
+maxDepth = 3
 
 @dataclass
 class Experience:
@@ -21,9 +18,8 @@ class Experience:
 
 class Game: 
     def __init__(self):
-        self.board = np.zeros((3, 6, 7), dtype = int)
-        self.board[0] = np.ones((6, 7), dtype = int)
-        self.state = -1  # 0 if drawn, {player} if won
+        self.board = np.zeros((6, 7), dtype = int)
+        self.state = None  # 0 if drawn, {player} if won
         self.turn = 1    # Current player's turn
         self.column = -1 # Last picked column (starts at 0)
         self.history = []     # Contains all boards
@@ -32,7 +28,7 @@ class Game:
 
     def game_move(self, picked_column):
 
-        if self.state != -1:
+        if self.state != None:
             print("Game over")
             return
 
@@ -50,17 +46,13 @@ class Game:
         self.history.append(np.copy(self.board))
         self.experiences.append(Experience(self.history[-2], picked_column, None, self.history[-1]))
         
-        # turn change
-        if self.turn == 1:
-            self.turn = 2
-        else:
-            self.turn = 1
+        self.turn *= -1
 
         # nothing went wrong! returns 0
         return 0
 
     def game_win(self):
-        if self.state == -1:
+        if self.state == None:
             self.state = win(self.board, self.turn)
 
     def random_agent(self):
@@ -73,48 +65,63 @@ class Game:
         # create a new network, ask it for a move
         q = q_identity
         board = np.copy(self.board)
+        # flatten board
+        board = np.reshape(board, (42))
+        heur = np.array([heuristics.static_evaluation(self.board, self.turn)])
+        #board = np.append(board, heur)
         q_choices = q.forward(torch.from_numpy(board).float())
         _, indices = torch.sort(q_choices) # ascending order
         return indices
 
-    def playGame(self, agent1 = 1, agent2 = 1, pick_display = 0):
+    def playGame(self, agent1 = 1, agent2 = 1, pick_display = 0, epsilon = 0, minmaxrng = 0):
         # play game until either player wins or game draws
-        while (self.state == -1):
+        while (self.state == None):
             # figure out who's turn it is
             agent = agent1 if self.turn == 1 else agent2
-            
-            # take a turn
             if agent == 1: 
                 # random
                 while self.game_move(self.random_agent()) == -1:
                     pass
             elif agent == 3: 
-                # minimax
-                self.game_move(self.minimax_agent(maxDepth)[1])
-            else: 
-                q_choices = self.q_agent(agent) # If q-agent, should NOT be 1 or 3
-                if self.turn == 1:
-                    index_chosen = 6
-                    while index_chosen >= 0 and self.game_move(q_choices[index_chosen]) == -1:
-                        index_chosen -= 1
+                # minimax rng
+                if random.random() < minmaxrng:
+                    while self.game_move(self.minimax_agent(maxDepth)[1]) == -1:
+                        pass
                 else:
-                    index_chosen = 0
-                    while index_chosen <= 6 and self.game_move(q_choices[index_chosen]) == -1:
-                        index_chosen += 1
-            
+                    self.game_move(self.minimax_agent(maxDepth)[1])
+            else: 
+                if random.random() < epsilon:
+                    while self.game_move(self.random_agent()) == -1:
+                        pass
+                else:
+                    q_choices = self.q_agent(agent) # If q-agent, should NOT be 1 or 3
+                    if self.turn == 1:
+                        index_chosen = 6
+                        while index_chosen >= 0 and self.game_move(q_choices[index_chosen]) == -1:
+                            index_chosen -= 1
+                    else:
+                        index_chosen = 0
+                        while index_chosen <= 6 and self.game_move(q_choices[index_chosen]) == -1:
+                            index_chosen += 1
             # board display
             if pick_display == 1:
                 display(self.board)
-
+        # set the last experience's reward
+        if self.state == 1:
+            self.experiences[-1].reward = 1
+        elif self.state == -1:
+            self.experiences[-1].reward = -1
+        else:
+            self.experiences[-1].reward = 0
 def display(board):
     output = ""
     for row in range(6):
         for column in range(7):
-            if (board)[0][row][column] == 1:
+            if board[row][column] == 0:
                 output += "."
-            elif (board)[1][row][column] == 1:
+            elif board[row][column] == 1:
                 output += "X"
-            elif (board)[2][row][column] == 1:
+            elif board[row][column] == -1:
                 output += "O"
             output += " "
         output += "\n"
@@ -124,17 +131,14 @@ def move(board, picked_column, turn):
 
     if picked_column == -1:
         return -1
-        
-    row = 5
-    # check 
-    while row >= 0 and board[0][row][picked_column] == 0:
+
+    row = 5 
+    while board[row][picked_column] != 0:
         row -= 1
-        
-    if row == -1:
-        return -1
+        if row == -1:
+            return -1
     
-    board[0][row][picked_column] = 0
-    board[turn][row][picked_column] = 1
+    board[row][picked_column] = turn
 
 def win(board, turn):
     
@@ -149,8 +153,8 @@ def win(board, turn):
                     # check 4 in a row in the direction of (dx, dy)
                     check_sum = 0
                     for i in range(4):
-                        check_sum += board[turn][row + i * dx][col + i * dy]
-                    if check_sum == 4:
+                        check_sum += board[row + i * dx][col + i * dy]
+                    if check_sum == 4 * turn:
                         has_won = True
                 
     # modify the state based on boolean
@@ -159,21 +163,21 @@ def win(board, turn):
     else:
         empty_sum = 0
         for col in range(7):
-            empty_sum += board[0][0][col]
+            if board[0][col] == 0:
+                empty_sum += 1
         if empty_sum == 0:
             return 0
-    return -1
+    return None
 
 def minimax(board, player, picked_column, depth, alpha, beta):
     # check if we win, lose, or draw
     won_player = win(board, player)
     if won_player == 1:
         return (2, picked_column)
-    if won_player == 2:
+    if won_player == -1:
         return (-2, picked_column)
     if won_player == 0:
         return (0, picked_column)
-
     # if depth is 0, then return heuristic value
     if depth == 0:
         return (heuristics.static_evaluation(board, player), -1)
@@ -183,7 +187,6 @@ def minimax(board, player, picked_column, depth, alpha, beta):
         # for each child of node, do:
             # set the value to max of (board, value, minimax(child, 2, depth - 1))
     # return value
-    
     if player == 1:
         max_eval = float('-inf')
         best_move = -1
@@ -191,7 +194,7 @@ def minimax(board, player, picked_column, depth, alpha, beta):
             mod_board = np.copy(board)
             if move(mod_board, possible_move, 1) == -1:
                 continue
-            val = minimax(mod_board, 2, possible_move, depth - 1, alpha, beta)[0]
+            val = minimax(mod_board, -1, possible_move, depth - 1, alpha, beta)[0]
             if val > max_eval:
                 max_eval = val
                 best_move = possible_move
@@ -199,12 +202,12 @@ def minimax(board, player, picked_column, depth, alpha, beta):
             if beta <= alpha:
                 break
         return (max_eval, best_move)
-    if player == 2:
+    if player == -1:
         min_eval = float('+inf')
         best_move = -1
         for possible_move in range(7):
             mod_board = np.copy(board)
-            if move(mod_board, possible_move, 2) == -1:
+            if move(mod_board, possible_move, -1) == -1:
                 continue
             val = minimax(mod_board, 1, possible_move, depth - 1, alpha, beta)[0]
             if val < min_eval:

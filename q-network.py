@@ -93,6 +93,7 @@ def train():
         g.playGame(agent1 = 3, agent2 = 1)
         for experience in g.experiences:
             buffer.add(experience)
+        print(step)
 
     for iter in range(int(total_timesteps)):
         
@@ -121,7 +122,9 @@ def train():
             optimiser.zero_grad()
             loss.backward()
             optimiser.step()
-        print(iter, loss)
+        
         target_network = q_network
+
+        print(iter, loss)
 
 train()
