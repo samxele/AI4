@@ -6,7 +6,6 @@ from dataclasses import dataclass
 import torch
 import torch.nn as nn
 
-epsilon = 0.00001
 maxDepth = 3
 
 @dataclass
@@ -62,22 +61,23 @@ class Game:
     def minimax_agent(self, depth):
         return minimax(self.board, self.turn, 0, depth, -1, 1) # (eval, move)
 
-    def q_agent(self, q_identity = None):
+    def q_agent(self, q_identity = None, turn = 1):
         # create a new network, ask it for a move
         q = q_identity
         board = np.copy(self.board)
+        if turn == -1:
+            board *= -1
         # flatten board
         board = np.reshape(board, (42))
-        heur = np.array([heuristics.static_evaluation(self.board, self.turn)])
-        #board = np.append(board, heur)
         q_choices = q.forward(torch.from_numpy(board).float())
         _, indices = torch.sort(q_choices) # ascending order
         return indices
 
-    def playGame(self, agent1 = 1, agent2 = 1, pick_display = 0, epsilon = 0, minmaxrng = 0, agent_number = 1):
+    def playGame(self, agent1 = 1, agent2 = 1, pick_display = 0, epsilon = 0, minmaxrng = 0, first_player = 1):
         
         # keeps track of the q network's final move
         our_last_move = -1
+        self.turn = 1 if first_player == 1 else -1
         
         # play game until either player wins or game draws
         while (self.state == None):
@@ -99,23 +99,19 @@ class Game:
                 if random.random() < epsilon:
                     random_move = self.random_agent()
                     while self.game_move(random_move, ouragent) == -1:
-                        pass
-                    # if it is our turn, update most recent move
-                    if agent_number == self.turn:
+                        random_move = self.random_agent()
+                    # after our turn, update most recent move
+                    if self.turn == -1:
                         our_last_move = random_move
                 else:
-                    q_choices = self.q_agent(agent) # If q-agent, should NOT be 1 or 3
-                    if self.turn == 1:
-                        index_chosen = 6
-                        while index_chosen >= 0 and self.game_move(q_choices[index_chosen], ouragent) == -1:
-                            index_chosen -= 1
-                    else:
-                        index_chosen = 0
-                        while index_chosen <= 6 and self.game_move(q_choices[index_chosen], ouragent) == -1:
-                            index_chosen += 1
-                    # if it is our turn, update most recent move
-                    if agent_number == self.turn:
-                        our_last_move = index_chosen
+                    # TODO: Modify this
+                    q_choices = self.q_agent(agent, self.turn) # If q-agent, should NOT be 1 or 3
+                    index_chosen = 6
+                    while index_chosen >= 0 and self.game_move(q_choices[index_chosen], ouragent) == -1:
+                        index_chosen -= 1
+                    # after our turn, update most recent move
+                    if self.turn == -1:
+                        our_last_move = q_choices[index_chosen]
             # board display
             if pick_display == 1:
                 display(self.board)
