@@ -61,14 +61,16 @@ class Game:
     def minimax_agent(self, depth):
         return minimax(self.board, self.turn, 0, depth, -1, 1) # (eval, move)
 
-    def q_agent(self, q_identity = None, turn = 1):
+    def q_agent(self, q_identity = None, player = 1):
         # create a new network, ask it for a move
         q = q_identity
         board = np.copy(self.board)
-        if turn == -1:
-            board *= -1
         # flatten board
-        board = np.reshape(board, (42))
+        # board = np.reshape(board, (42))
+        # TODO: reverse the board
+        if player != 1:
+            board = -1 * board
+        #board = np.append(board, heur)
         q_choices = q.forward(torch.from_numpy(board).float())
         _, indices = torch.sort(q_choices) # ascending order
         return indices
