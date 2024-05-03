@@ -12,11 +12,11 @@ def generate_image(board, gameEnded, turn):
 
     for row in range(6):
         for column in range(7):
-            if (board)[0][row][column] == 1:
+            if (board)[row][column] == 0:
                 board_img.paste(empty_tile, (column * size, row * size))
-            elif (board)[1][row][column] == 1:
+            elif (board)[row][column] == 1:
                 board_img.paste(red_tile, (column * size, row * size))
-            elif (board)[2][row][column] == 1:
+            else:
                 board_img.paste(yellow_tile, (column * size, row * size))
 
     # If game has ended, overlay corresponding message in image
