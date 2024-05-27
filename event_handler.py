@@ -10,8 +10,8 @@ class DeepQNetworkConnect4(nn.Module):
     # def __init__(self, env):
     def __init__(self):
         super().__init__()
-        self.conv = nn.Conv2d(1, 10, kernel_size=4, stride=1, padding=0)
-        self.fc1 = nn.Linear(10*3*4, 42)
+        self.conv = nn.Conv2d(1, 32, kernel_size=4, stride=1, padding=0)
+        self.fc1 = nn.Linear(32*3*4, 42)
         self.fc2 = nn.Linear(42, 20)
         self.fc3 = nn.Linear(20, 7)
 
@@ -19,7 +19,7 @@ class DeepQNetworkConnect4(nn.Module):
     def forward(self, x):
         x = x.unsqueeze(0)  # Add an extra dimension for the channels
         x = F.relu(self.conv(x))
-        x = x.view(-1, 10*3*4)  # Flatten the tensor
+        x = x.view(-1, 32*3*4)  # Flatten the tensor
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
@@ -28,13 +28,16 @@ class DeepQNetworkConnect4(nn.Module):
 gameStarted = False
 game = Game()
 net = DeepQNetworkConnect4()
+# Load the network from q_conv_network.pth into net
+net.load_state_dict(torch.load("best_q_weights_mm.pth"))
+#net.load_state_dict(torch.load("best_q_weights_mm.pth").state_dict())
 image_generator.generate_image(game.board, False, 0)
 
 def update_image(column):
     global gameStarted
     if gameStarted:
-        game.game_move(column)
-        game.get_computer_move(net)
+        if game.game_move(column) != -1:
+            game.get_computer_move(net)
 
     gameStarted = True
     image_generator.generate_image(game.board, game.state is not None, game.turn)
