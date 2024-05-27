@@ -120,6 +120,12 @@ class Game:
 
         self.experiences.append(Experience(self.history[-1], our_last_move, self.state, None))
 
+    def get_computer_move(self, net):
+        q_choices = self.q_agent(net, self.turn)
+        index_chosen = 6
+        while index_chosen >= 0 and self.game_move(q_choices[index_chosen], False) == -1:
+            index_chosen -= 1
+
 def display(board):
     output = ""
     for row in range(6):

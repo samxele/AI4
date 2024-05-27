@@ -1,5 +1,5 @@
 import numpy as np
-import game
+from game import Game
 import heuristics
 
 import random
@@ -10,20 +10,23 @@ import torch.nn.functional as F
 
 # Instantiate the neural network
 class DeepQNetworkConnect4(nn.Module):
-
+    # def __init__(self, env):
     def __init__(self):
         super().__init__()
-        self.network = nn.Sequential(
-            nn.Flatten(start_dim = 0),
-            nn.Linear(126, 40),
-            nn.ReLU(),
-            nn.Linear(40, 20),
-            nn.ReLU(),
-            nn.Linear(20, 7),
-        )
+        self.conv = nn.Conv2d(1, 10, kernel_size=4, stride=1, padding=0)
+        self.fc1 = nn.Linear(10*3*4, 42)
+        self.fc2 = nn.Linear(42, 20)
+        self.fc3 = nn.Linear(20, 7)
+
 
     def forward(self, x):
-        return self.network(x) # returns a 7-element tensor
+        x = x.unsqueeze(0)  # Add an extra dimension for the channels
+        x = F.relu(self.conv(x))
+        x = x.view(-1, 10*3*4)  # Flatten the tensor
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x.squeeze(0)
   
 # Instantiate the replay buffer
 class ReplayBuffer:
@@ -87,7 +90,7 @@ def train():
 
     for step in range(int(pretrain_games)):
         # Generate games and add experiences
-        g = game.Game()
+        g = Game()
         # TODO: Add options for more agent pairs
         g.playGame(agent1 = 1, agent2 = 3)
         g.playGame(agent1 = 3, agent2 = 1)
@@ -99,7 +102,7 @@ def train():
         
         for step in range(int(train_games)):
             # Generate games and add experiences
-            g = game.Game()
+            g = Game()
             # TODO: Add options for more agent pairs
             to_display = iter % 50 == 0
             g.playGame(agent1 = q_network, agent2 = q_network, pick_display = to_display)
